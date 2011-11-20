@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>Editor</title>
+  <style type="text/css" media="screen">
+    body {
+        overflow: hidden;
+    }
+    
+    #editor { 
+        margin: 0;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+    }
+</style>
+</head>
+<body id="body">
+<pre id="editor">public static void main(String[] args)
+{
+	System.out.println("Hello world!");
+}</pre>
+    
+<script src="../ace/build/src/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="../ace/build/src/theme-eclipse.js" type="text/javascript" charset="utf-8"></script>
+<script src="../ace/build/src/mode-java.js" type="text/javascript" charset="utf-8"></script>
+<script>
+var adviceRetriever = function(editor)
+{
+	// here I suppose we need to call to something such an advice engine depending on editor Mode, Theme, and key Binding
+	var sel = editor.selection.getRange();
+	var line = editor.getSession().getLine(sel.start.row);
+	var adviceData = [{"java.util.List" : "java.util.List", "sayHello(String) : void" : "sayHello(String) : void"}];
+	return adviceData;
+};
+
+window.onload = function() {
+    var editor = ace.edit("editor");
+    var autocompleting = false;
+    var currentTextPos = -1;
+    editor.setTheme("ace/theme/eclipse");
+    
+    var JavaMode = require("ace/mode/java").Mode;
+    editor.getSession().setMode(new JavaMode());
+    //var canon = require("pilot/canon");
+
+	editor.commands.addCommand({
+		name: "autocomplete",
+		exec: function(editor, args, request) {
+    	var sel = editor.selection.getRange();
+		var line = editor.getSession().getLine(sel.start.row);
+		line = line.substr(sel.start.column);
+		currentTextPos = sel.start;
+		var pos = editor.renderer.textToScreenCoordinates(sel.start.row, sel.start.column);
+	    	var body = editor.container;
+	    	var ac = document.getElementById("ac");
+	    	if (!ac)
+	    	{
+	        	ac = document.createElement("select");
+	        	ac.id = 'ac';
+	        	ac.name = 'ac';
+	        	ac.style.position='absolute';
+	        	ac.style.zIndex=100;
+	        	ac.style.width='240px';
+	        	ac.size = 10;
+	        	
+	        	//calculate the container offset
+				var obj = editor.container;
+				var curleft = 0;
+				var curtop = 0;
+
+				if (obj.offsetParent) {
+					do {
+						curleft += obj.offsetLeft;
+						curtop += obj.offsetTop;
+					} while (obj = obj.offsetParent);
+				}						
+
+				//position autocomplete
+				ac.style.top=pos.pageY - curtop + 20 + "px";
+				ac.style.left=pos.pageX - curleft + "px";
+				ac.style.display='block';
+				ac.style.background='yellow';
+				
+				var arr = adviceRetriever(editor);
+				
+				if (arr && arr.length && arr.length > 0)
+				{
+					for(var i=0;i<arr.length;i++){
+				        var obj = arr[i];
+				        for(var key in obj){
+				            var attrName = key;
+				            var attrValue = obj[key];
+				        	var option = document.createElement("option");
+							option.text = attrName;
+							option.value = attrValue;
+							try {
+								ac.add(option, null); // standards compliant; doesn't work in IE
+							}
+							catch(ex) {
+								ac.add(option); // IE only
+							}
+							if(ac.length > 0)
+							{
+								ac.selectedIndex = 0;
+								autocompleting = true;
+							}
+							else
+							{
+					    		body.removeChild(ac);
+					    		autocompleting = false;
+							}
+				        }
+				    }
+				}
+
+				body.appendChild(ac);
+	    	}
+	}
+    });
+	
+	editor.commands.addCommand({
+		name: "up",
+		bindKey: {
+			win: "Up",
+			mac: "Up",
+			sender: "editor"
+		},
+		exec: function(editor, args, request) {
+			if( document.getElementById('ac') ){
+				var select=document.getElementById('ac');
+				if( select.selectedIndex==0 ){
+					select.selectedIndex=select.options.length-1;
+				}else{
+					select.selectedIndex=select.selectedIndex-1;
+				}
+			}else{
+				editor.navigateUp(args.times);
+			}
+		}
+	});
+
+	editor.commands.addCommand({
+		name: "down",
+		bindKey: {
+			win: "Down",
+			mac: "Down",
+			sender: "editor"
+		},
+		exec: function(editor, args, request) {
+			if( document.getElementById('ac') ){
+				var select=document.getElementById('ac');
+				if( select.selectedIndex==select.options.length-1 ){
+					select.selectedIndex=0;
+				}else{
+					select.selectedIndex=select.selectedIndex+1;
+				}
+			}else{
+				editor.navigateDown(args.times);
+			}
+		}
+	});
+
+	
+	editor.commands.addCommand({
+		name: "escape",
+		bindKey: {
+			win: "Esc",
+			mac: "Esc",
+			sender: "editor"
+		},
+		exec: function(editor, args, request) {
+			if( document.getElementById('ac') ){							
+				var ac=document.getElementById('ac');
+				ac.parentNode.removeChild(ac);
+				autocompleting = false;
+			}
+		}
+	});
+	
+	editor.commands.addCommand({
+		name: "enter",
+		bindKey: {
+			win: "Return",
+			mac: "Return",
+			sender: "editor"
+		},
+		exec: function(editor, args, request) {
+			if( document.getElementById('ac') ){
+				var select=document.getElementById('ac');
+				var tag=select.options[select.selectedIndex].value;
+				editor.insert(tag);
+				autocompleting=false;
+			}else{
+				editor.insert('\n');
+			}
+			if( document.getElementById('ac') ){
+				document.getElementById('ac').parentNode.removeChild(ac);
+			}
+		}
+	});
+
+	editor.commands.addCommand({
+		name: "triggerAutocomplete",
+		bindKey: {
+			win: "Ctrl-Shift-Space",
+			mac: "Ctrl-Shift-Space",
+			sender: "editor"
+		},
+		exec: function(editor, args, request) {
+			if( autocompleting == false )
+			{
+				if( document.getElementById('ac') ){
+					document.getElementById('ac').parentNode.removeChild(ac);
+				}
+				//var canon = require("pilot/canon");
+				var command = editor.commands.commands['autocomplete'];
+				command.exec(editor,{});
+			}
+		}
+	});
+	
+	//editor.getSession().on('change', function() {
+	//	var canon = require("pilot/canon");
+	//	var command = canon.getCommand('autocomplete');
+	//	command.exec(editor.env);
+	//});
+};
+</script>
+
+</body>
+</html>
