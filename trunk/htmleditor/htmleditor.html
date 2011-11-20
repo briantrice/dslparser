@@ -1,0 +1,299 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>Ace</title>
+
+
+<script src="../ace/build/src/ace-uncompressed.js" type="text/javascript" charset="utf-8"></script>
+<script src="../ace/build/src/theme-twilight.js" type="text/javascript" charset="utf-8"></script>
+
+<script src="../ace/build/src/mode-css.js" type="text/javascript" charset="utf-8"></script>
+
+<script src="../ace/build/src/mode-html.js" type="text/javascript" charset="utf-8"></script>
+<script src="../ace/build/src/mode-javascript.js" type="text/javascript" charset="utf-8"></script>
+<script src="../ace/build/src/mode-php.js" type="text/javascript" charset="utf-8"></script>
+<script src="../ace/build/src/mode-python.js" type="text/javascript" charset="utf-8"></script>
+<script src="../ace/build/src/mode-xml.js" type="text/javascript" charset="utf-8"></script>
+
+<script type="text/javascript">
+var editor;
+
+var autocompleting = false;
+
+var html_tags = ['!doctype','a','abbr','acronym','address','applet','area','b','base','basefont','bdo','bgsound','big','blink','blockquote','body','br','button','caption','center','cite','code','col','colgroup','comment','dd','del','dfn','dir','div','dl','dt','em','embed','fieldset','font','form','frame','frameset','h1','h2','h3','h4','h5','h6','head','hr','html','i','iframe','ilayer','img','input','ins','isindex','kbd','keygen','label','layer','legend','li','link','listing','map','marquee','menu','meta','multicol','nextid','nobr','noembed','noframes','nolayer','noscript','object','ol','optgroup','option','p','param','plaintext','pre','q','rb','rbc','rp','rt','rtc','ruby','s','samp','script','select','small','spacer','span','strike','strong','style','sub','sup','table','tbody','td','textarea','tfoot','th','thead','tr','tt','u','ul','var','wbr','xml','xmp'];
+
+window.onload = function() {
+    editor = ace.edit("editor");
+    //editor.getSession().setUseWrapMode(true);
+    editor.getSession().setValue('<!DOCTYPE HTML>\n<html>\n<head>\n	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n	<title>Untitled Document</title>\n</head>\n\n<body>    \n</body>\n</html>');
+
+    var Mode = require("ace/mode/html").Mode;
+    editor.getSession().setMode(new Mode());
+
+    editor.setBehavioursEnabled(false);
+
+
+    //var canon = require("pilot/canon");
+
+    editor.commands.addCommand({
+        name: "autocomplete",
+        exec: function(editor, args, request) {
+            var sel = editor.getSelection();
+            var session = editor.getSession();
+
+            var lead = sel.getSelectionLead();
+            var pos = editor.renderer.textToScreenCoordinates(lead.row, lead.column);
+
+            var ac;
+
+            if (document.getElementById('ac')) {
+                ac = document.getElementById('ac');
+            } else {
+                ac = document.createElement('select');
+                ac.id = 'ac';
+                ac.namme = 'ac';
+                ac.style.position = 'absolute';
+                ac.style.zIndex = 100;
+                ;
+                ac.style.width = '140px';
+                ac.size = 10;
+            }
+
+            /*
+             ac.addEventListener('click',function(e){
+             //console.log('yo');
+             })
+             */
+
+            //calulate the container offset
+            var obj = editor.container;
+
+            var curleft = 0;
+            var curtop = 0;
+            if (obj.offsetParent) {
+                do {
+                    curleft += obj.offsetLeft;
+                    curtop += obj.offsetTop;
+                } while (obj = obj.offsetParent);
+            }
+
+            //position autocomplete
+            ac.style.top = pos.pageY - curtop + 20 + "px";
+            ac.style.left = pos.pageX - curleft + "px";
+            ac.style.display = 'block';
+            ac.style.background = 'white';
+
+            var sel = editor.selection.getRange();
+
+            var line = editor.getSession().getLine(sel.start.row);
+
+            line = line.substr(0, sel.start.col);
+
+            var pos = line.lastIndexOf('<');
+
+            var text = line.substr(pos + 1);
+
+            var tag;
+            for (i in html_tags) {
+                if (!html_tags.hasOwnProperty(i)) {
+                    continue;
+                }
+
+                tag = html_tags[i];
+
+                if (text) {
+                    if (text != tag.substr(0, text.length)) {
+                        continue;
+                    }
+                }
+
+                var option = document.createElement('option');
+                option.text = tag;
+                option.value = tag;
+
+                try {
+                    ac.add(option, null); // standards compliant; doesn't work in IE
+                }
+                catch(ex) {
+                    ac.add(option); // IE only
+                }
+            }
+            ;
+
+            if (ac.length == 0) {
+                autocompleting = false;
+
+                return false;
+            }
+
+            ac.selectedIndex = 0;
+
+            editor.container.appendChild(ac);
+
+            autocompleting = true;
+        }
+    });
+
+    editor.commands.addCommand({
+        name: "langle",
+        bindKey: {
+            win: "Shift-,", // <
+            mac: "Shift-,", // <
+            sender: "editor"
+        },
+        exec: function(editor, args, request) {
+            editor.insert('<');
+
+
+
+            var command = editor.commands.commands['autocomplete'];
+
+            command.exec(editor);
+        }
+    });
+
+    editor.commands.addCommand({
+        name: "up",
+        bindKey: {
+            win: "Up",
+            mac: "Up",
+            sender: "editor"
+        },
+        exec: function(editor, args, request) {
+            if (document.getElementById('ac')) {
+                var select = document.getElementById('ac');
+
+                if (select.selectedIndex == 0) {
+                    select.selectedIndex = select.options.length - 1;
+                } else {
+                    select.selectedIndex = select.selectedIndex - 1;
+                }
+            } else {
+                editor.navigateUp(args.times);
+            }
+        }
+    });
+
+    editor.commands.addCommand({
+        name: "down",
+        bindKey: {
+            win: "Down",
+            mac: "Down",
+            sender: "editor"
+        },
+        exec: function(editor, args, request) {
+            if (document.getElementById('ac')) {
+                var select = document.getElementById('ac');
+
+                if (select.selectedIndex == select.options.length - 1) {
+                    select.selectedIndex = 0;
+                } else {
+                    select.selectedIndex = select.selectedIndex + 1;
+                }
+            } else {
+                editor.navigateDown(args.times);
+            }
+        }
+    });
+
+    editor.commands.addCommand({
+        name: "escape",
+        bindKey: {
+            win: "Esc",
+            mac: "Esc",
+            sender: "editor"
+        },
+        exec: function(editor, args, request) {
+            if (document.getElementById('ac')) {
+                var ac = document.getElementById('ac');
+
+                ac.parentNode.removeChild(ac);
+
+                autocompleting = false;
+            }
+        }
+    });
+
+    editor.commands.addCommand({
+        name: "enter",
+        bindKey: {
+            win: "Return",
+            mac: "Return",
+            sender: "editor"
+        },
+        exec: function(editor, args, request) {
+            if (document.getElementById('ac')) {
+                var select = document.getElementById('ac');
+                var tag = select.options[select.selectedIndex].value;
+
+                var sel = editor.selection.getRange();
+
+                var line = editor.getSession().getLine(sel.start.row);
+
+                line = line.substr(0, sel.start.col);
+
+                var pos = line.lastIndexOf('<');
+
+                var text = line.substr(pos + 1);
+
+                sel.start.column = sel.start.column - text.length
+
+                editor.selection.setSelectionRange(sel);
+
+                editor.insert(tag);
+
+                autocompleting = false;
+            } else {
+                editor.insert('\n');
+            }
+        }
+    });
+
+    editor.commands.addCommand({
+        name: "inserttext",
+        exec: function(editor, args, request) {
+            var lang = require("pilot/lang");
+
+            editor.insert(lang.stringRepeat(args.text || "", args.times || 1));
+
+            if (autocompleting) {
+                
+                var command = editor.commands.commands['autocomplete'];
+
+                command.exec(editor);
+            }
+        }
+    });
+
+    editor.getSession().selection.on('changeCursor', function(oldRange, newRange, newText) {
+        if (document.getElementById('ac')) {
+            var ac = document.getElementById('ac');
+
+            ac.parentNode.removeChild(ac);
+        }
+    });
+};
+</script>
+
+</head>
+
+<body>
+
+
+<h1>Autocomplete Demo</h1>
+
+<p>Try pressing &lt;</p>
+
+<div id="editor" style="width:800px; height:400px; font-size:12px;"></div>
+
+
+<br/>
+<br/>
+<br/>
+<br/>
+
+</body>
+</html>
+
