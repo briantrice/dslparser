@@ -1,0 +1,76 @@
+{
+ var lastoperator;
+ var lastvariable;
+}
+start
+  = dslconstraint/whiteSpace
+
+whiteSpace = whiteSpace:(' '/'\n')* {return '';}
+
+dslconstraint
+  = leftdslexpression:dslexpression whiteSpace rightdslexpressions:(dsloperator:dsloperator whiteSpace dslexpression:dslexpression {return [dsloperator,dslexpression];})* 
+{
+  var result=[];
+  result.push(leftdslexpression);
+  for(var i in rightdslexpressions)
+      result=result.concat(rightdslexpressions[i]);
+  return result;
+}
+dsloperator
+  = operator:('and' / 'or') {return operator;}
+
+dslexpression 
+  = dsldiscreateexp / dslcontiniousexp
+
+
+dsldiscreateexp
+  = dsldiscreatevar:dsldiscreatevar whiteSpace dsldiscreateclause:dsldiscreateclause  whiteSpace {return {variable:dsldiscreatevar,clause:dsldiscreateclause};}
+
+dsldiscreatevar
+  = variable:('city'/'team'/'school') {lastvariable=variable;return variable;}
+
+dsldiscreateclause
+  = operator:discreateinoperator whiteSpace values:tupple {return {operator:operator,values:values};}
+   / operator:discreateequalityoperators whiteSpace values:literalValue {return {operator:operator,values:values};}
+
+discreateinoperator 'in operator' = operator:('in') {lastoperator=operator;return operator;}
+discreateequalityoperators 'equality operator' = operator:('=' / '!=') {lastoperator=operator;return operator;}
+
+tupple "tuple"
+  = '(' whiteSpace stringValues:stringValues whiteSpace ')' {return stringValues;}
+    / '(' whiteSpace numberValues:numberValues whiteSpace ')' {return numberValues;}
+
+stringValues
+  = leftStringValue:stringValue rightStringValues:(whiteSpace ',' whiteSpace rightStringValue:stringValue {return rightStringValue;})* {rightStringValues.push(leftStringValue);
+                      return rightStringValues;} 
+
+stringValue 'stringValue'
+  = '\''stringValue:[a-zA-Z0-9 ]+'\'' {return stringValue.join('');}
+
+numberValues
+  = numberValue (','numberValue)*
+
+numberValue 'numberValue'
+  = digits:((leftSide:[0-9]+ {return leftSide.join('');})(fraction:('.'[0-9]+) {return fraction.join('');})?) {
+return parseFloat(digits.join(""), 10); }
+
+literalValue=stringValue/numberValue
+
+dslcontiniousexp = dslcontiniousvar:dslcontiniousvar whiteSpace operator:dslcontiniousoperators whiteSpace dslcontiniousval:dslcontiniousval whiteSpace & { console.log(operator); return true;}
+{
+        return {
+          variable:dslcontiniousvar,
+          clause:{
+                 operator:operator,
+                 values:dslcontiniousval
+          },
+        };
+}
+
+dslcontiniousoperators 'equality operator' = operator:('>=' / '<=' / '>' / '<' / '=' / '!=') {lastoperator=operator;return operator;}
+
+dslcontiniousvar = variable:('age'/'startDate') {lastvariable=variable;return variable;}
+
+dslcontiniousval = dateValue/numberValue
+
+dateValue 'dateValue'= dateValue:([0-9][1-9]'/'[0-9][1-9]'/'[0-9][0-9](dateRight:([0-9][0-9]) {return dateRight.join('');} )?) {return Date.parse(dateValue.join(''));}

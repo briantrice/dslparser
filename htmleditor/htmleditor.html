@@ -7,15 +7,10 @@
 
 
 <script src="../ace/build/src/ace-uncompressed.js" type="text/javascript" charset="utf-8"></script>
-<script src="../ace/build/src/theme-twilight.js" type="text/javascript" charset="utf-8"></script>
-
-<script src="../ace/build/src/mode-css.js" type="text/javascript" charset="utf-8"></script>
-
-<script src="../ace/build/src/mode-html.js" type="text/javascript" charset="utf-8"></script>
-<script src="../ace/build/src/mode-javascript.js" type="text/javascript" charset="utf-8"></script>
-<script src="../ace/build/src/mode-php.js" type="text/javascript" charset="utf-8"></script>
-<script src="../ace/build/src/mode-python.js" type="text/javascript" charset="utf-8"></script>
-<script src="../ace/build/src/mode-xml.js" type="text/javascript" charset="utf-8"></script>
+<script src="../ace/build/src/theme-clouds.js" type="text/javascript" charset="utf-8"></script>
+<script src="../ace/build/src/mode-sql.js" type="text/javascript" charset="utf-8"></script>
+<script src="../dslparser/parser.js" type="text/javascript" charset="utf-8"></script>
+<script src="../jsDump.js" type="text/javascript" charset="utf-8"></script>
 
 <script type="text/javascript">
 var editor;
@@ -28,14 +23,11 @@ window.onload = function() {
     editor = ace.edit("editor");
     //editor.getSession().setUseWrapMode(true);
     editor.getSession().setValue('<!DOCTYPE HTML>\n<html>\n<head>\n	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n	<title>Untitled Document</title>\n</head>\n\n<body>    \n</body>\n</html>');
-
-    var Mode = require("ace/mode/html").Mode;
+    editor.setTheme("ace/theme/clouds");
+    var Mode = require("ace/mode/sql").Mode;
     editor.getSession().setMode(new Mode());
 
     editor.setBehavioursEnabled(false);
-
-
-    //var canon = require("pilot/canon");
 
     editor.commands.addCommand({
         name: "autocomplete",
@@ -136,14 +128,7 @@ window.onload = function() {
         }
     });
 
-    editor.commands.addCommand({
-        name: "langle",
-        bindKey: {
-            win: "Shift-,", // <
-            mac: "Shift-,", // <
-            sender: "editor"
-        },
-        exec: function(editor, args, request) {
+    var autoComplete=function(editor, args, request) {
             editor.insert('<');
 
 
@@ -151,7 +136,24 @@ window.onload = function() {
             var command = editor.commands.commands['autocomplete'];
 
             command.exec(editor);
-        }
+    }
+    editor.commands.addCommand({
+        name: "langle",
+        bindKey: {
+            win: "Shift-,", // <
+            mac: "Shift-,", // <
+            sender: "editor"
+        },
+        exec: autoComplete
+    });
+    editor.commands.addCommand({
+        name: "langle2",
+        bindKey: {
+            win: "<", // <
+            mac: "<", // <
+            sender: "editor"
+        },
+        exec: autoComplete
     });
 
     editor.commands.addCommand({
@@ -172,6 +174,27 @@ window.onload = function() {
                 }
             } else {
                 editor.navigateUp(args.times);
+            }
+        }
+    });
+
+    editor.commands.addCommand({
+        name: "Space",
+        bindKey: {
+            win: "Space",
+            mac: "Space",
+            sender: "editor"
+        },
+        exec: function(editor, args, request) {
+            //just put space character and 
+            editor.insert(' ');
+
+            var editorValue=editor.getSession().getValue();
+            try{
+                var parsed=dslparser.parse(editorValue);
+                console.log(jsDump.parse(parsed));
+            }catch(e){
+                console.log(e);
             }
         }
     });
@@ -254,7 +277,7 @@ window.onload = function() {
     editor.commands.addCommand({
         name: "inserttext",
         exec: function(editor, args, request) {
-            var lang = require("pilot/lang");
+            var lang = require("ace/lib/lang");
 
             editor.insert(lang.stringRepeat(args.text || "", args.times || 1));
 
