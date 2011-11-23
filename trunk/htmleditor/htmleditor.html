@@ -11,6 +11,11 @@
 <script src="../ace/build/src/mode-sql.js" type="text/javascript" charset="utf-8"></script>
 <script src="../dslparser/parser.js" type="text/javascript" charset="utf-8"></script>
 <script src="../jsDump.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript" charset="utf-8" src="../jquery-1.7.js"></script>
+<script type="text/javascript" charset="utf-8" src='autocomplete.js'></script>
+<link type="text/css" href="../css/ui-lightness/jquery-ui-1.8.16.custom.css" rel="stylesheet"/>
+<link type="text/css" href="../css/style.css" rel="stylesheet"/>
+<script type="text/javascript" src="../jquery-ui-1.8.16.custom.min.js"></script>
 
 <script type="text/javascript">
 var editor;
@@ -25,6 +30,9 @@ window.onload = function() {
     editor.getSession().setValue('<!DOCTYPE HTML>\n<html>\n<head>\n	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n	<title>Untitled Document</title>\n</head>\n\n<body>    \n</body>\n</html>');
     editor.setTheme("ace/theme/clouds");
     var Mode = require("ace/mode/sql").Mode;
+    var Autocomplete = require('globalmaksimum/autocomplete').Autocomplete;
+    var timer = null;
+    var variableOptions = ['city','team','school','age','startDate'];
     editor.getSession().setMode(new Mode());
 
     editor.setBehavioursEnabled(false);
@@ -36,6 +44,7 @@ window.onload = function() {
             var session = editor.getSession();
 
             var lead = sel.getSelectionLead();
+
             var pos = editor.renderer.textToScreenCoordinates(lead.row, lead.column);
 
             var ac;
@@ -128,14 +137,13 @@ window.onload = function() {
         }
     });
 
-    var autoComplete=function(editor, args, request) {
-            editor.insert('<');
+    var triggerAutoComplete = function(editor, args, request) {
+        editor.insert('<');
 
 
+        var command = editor.commands.commands['autocomplete'];
 
-            var command = editor.commands.commands['autocomplete'];
-
-            command.exec(editor);
+        command.exec(editor);
     }
     editor.commands.addCommand({
         name: "langle",
@@ -144,7 +152,7 @@ window.onload = function() {
             mac: "Shift-,", // <
             sender: "editor"
         },
-        exec: autoComplete
+        exec: triggerAutoComplete
     });
     editor.commands.addCommand({
         name: "langle2",
@@ -153,7 +161,7 @@ window.onload = function() {
             mac: "<", // <
             sender: "editor"
         },
-        exec: autoComplete
+        exec: triggerAutoComplete
     });
 
     editor.commands.addCommand({
@@ -174,27 +182,6 @@ window.onload = function() {
                 }
             } else {
                 editor.navigateUp(args.times);
-            }
-        }
-    });
-
-    editor.commands.addCommand({
-        name: "Space",
-        bindKey: {
-            win: "Space",
-            mac: "Space",
-            sender: "editor"
-        },
-        exec: function(editor, args, request) {
-            //just put space character and 
-            editor.insert(' ');
-
-            var editorValue=editor.getSession().getValue();
-            try{
-                var parsed=dslparser.parse(editorValue);
-                console.log(jsDump.parse(parsed));
-            }catch(e){
-                console.log(e);
             }
         }
     });
@@ -282,7 +269,7 @@ window.onload = function() {
             editor.insert(lang.stringRepeat(args.text || "", args.times || 1));
 
             if (autocompleting) {
-                
+
                 var command = editor.commands.commands['autocomplete'];
 
                 command.exec(editor);
@@ -290,7 +277,99 @@ window.onload = function() {
         }
     });
 
+    function isEndOfDocument() {
+        var cursorPosition = editor.getCursorPosition();
+        var documentLastRow = editor.getSession().getDocument().getLength() - 1;
+        var documentLastColumn = editor.getSession().getDocument().getLine(documentLastRow).length;
+        if (cursorPosition.row == documentLastRow && cursorPosition.column == documentLastColumn)
+            return true;
+        return false;
+    }
+
+    function adviceGenerator() {
+        var editorValue = editor.getSession().getValue();
+        if (isEndOfDocument()) {
+            try {
+                var parsed = dslparser.parse(editorValue);
+                //jsDump.parse(parsed)
+                if (parsed.length != 0) {
+                    //TODO : show someoperator choices
+                }
+            } catch(e) {
+                //we are at the end of document and parsing failed show recommendation
+                // Make line red
+                $('#editor .ace_text-layer .ace_line:nth-child(' + e.line + ')').toggleClass('syntax_error');
+                showRecommendations(e);
+            }
+        }
+    }
+
+    function preparefailuresExpected(error) {
+        error.rightmostMatchFailuresExpected.sort();
+
+        var lastFailure = null;
+        var failuresExpectedUnique = [];
+        for (var i = 0; i < error.rightmostMatchFailuresExpected.length; i++) {
+            if (error.rightmostMatchFailuresExpected[i] !== lastFailure
+                    && error.rightmostMatchFailuresExpected[i] != '" "'
+                    && error.rightmostMatchFailuresExpected[i] != '"\\n"') {
+                failuresExpectedUnique.push(error.rightmostMatchFailuresExpected[i]);
+                lastFailure = error.rightmostMatchFailuresExpected[i];
+            }
+        }
+        return failuresExpectedUnique;
+    }
+
+    function matches(text) {
+        var regEx = new RegExp('[\\w\\d]*' + text + '[\\w\\d]*', 'i');
+        var result = []
+        $.each(variableOptions, function(index, data) {
+            if (regEx.test(data))
+                result.push(data);
+        });
+        return result;
+    }
+
+    var auto = new Autocomplete(editor, matches);
+
+    function showRecommendations(error) {
+        var failuresExpectedUnique = preparefailuresExpected(error);
+        if ($.inArray('variable', failuresExpectedUnique) != -1) {
+            //get all the variables and show recommedations
+
+            var range = editor.getSelectionRange();
+            var cursor = editor.getCursorPosition();
+            var range = editor.getSession().getWordRange(cursor.row, cursor.column);
+            if (range.start.row <= error.line - 1 && range.end.row >= error.line - 1
+                    && range.start.column <= error.column - 1 && range.end.column >= error.column - 1) {
+
+                //var keywordColumn = keywordRange.end.column;
+                auto.activate(error.line-1, error.column-1);
+                auto.suggest('');
+                console.log('variable required');
+            }
+        }
+
+        //if(failuresExpectedUnique)
+    }
+
+    function scheduleAdviceGenerator() {
+        timer = setTimeout(function() {
+            adviceGenerator();
+            timer = null;
+        }, 300);
+    }
+
     editor.getSession().selection.on('changeCursor', function(oldRange, newRange, newText) {
+        //TODO:do we have to clear red line here or after parsing
+        $('#editor .ace_text-layer .ace_line').toggleClass('syntax_error', false);
+
+        if (timer == null) {
+            scheduleAdviceGenerator();
+        } else {
+            clearTimeout(timer);
+            scheduleAdviceGenerator();
+        }
         if (document.getElementById('ac')) {
             var ac = document.getElementById('ac');
 

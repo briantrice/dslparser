@@ -26,15 +26,15 @@ dslexpression
 dsldiscreateexp
   = dsldiscreatevar:dsldiscreatevar whiteSpace dsldiscreateclause:dsldiscreateclause  whiteSpace {return {variable:dsldiscreatevar,clause:dsldiscreateclause};}
 
-dsldiscreatevar
+dsldiscreatevar 'variable'
   = variable:('city'/'team'/'school') {lastvariable=variable;return variable;}
 
 dsldiscreateclause
   = operator:discreateinoperator whiteSpace values:tupple {return {operator:operator,values:values};}
    / operator:discreateequalityoperators whiteSpace values:literalValue {return {operator:operator,values:values};}
 
-discreateinoperator 'in operator' = operator:('in') {lastoperator=operator;return operator;}
-discreateequalityoperators 'equality operator' = operator:('=' / '!=') {lastoperator=operator;return operator;}
+discreateinoperator = operator:('in') {lastoperator=operator;return operator;}
+discreateequalityoperators = operator:('=' / '!=') {lastoperator=operator;return operator;}
 
 tupple "tuple"
   = '(' whiteSpace stringValues:stringValues whiteSpace ')' {return stringValues;}
@@ -63,13 +63,13 @@ dslcontiniousexp = dslcontiniousvar:dslcontiniousvar whiteSpace operator:dslcont
           clause:{
                  operator:operator,
                  values:dslcontiniousval
-          },
+          }
         };
 }
 
-dslcontiniousoperators 'equality operator' = operator:('>=' / '<=' / '>' / '<' / '=' / '!=') {lastoperator=operator;return operator;}
+dslcontiniousoperators = operator:('>=' / '<=' / '>' / '<' / '=' / '!=') {lastoperator=operator;return operator;}
 
-dslcontiniousvar = variable:('age'/'startDate') {lastvariable=variable;return variable;}
+dslcontiniousvar 'variable' = variable:('age'/'startDate') {lastvariable=variable;return variable;}
 
 dslcontiniousval = dateValue/numberValue
 
