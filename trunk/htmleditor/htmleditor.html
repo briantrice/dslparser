@@ -21,245 +21,21 @@
 var editor;
 
 var autocompleting = false;
-
-var html_tags = ['!doctype','a','abbr','acronym','address','applet','area','b','base','basefont','bdo','bgsound','big','blink','blockquote','body','br','button','caption','center','cite','code','col','colgroup','comment','dd','del','dfn','dir','div','dl','dt','em','embed','fieldset','font','form','frame','frameset','h1','h2','h3','h4','h5','h6','head','hr','html','i','iframe','ilayer','img','input','ins','isindex','kbd','keygen','label','layer','legend','li','link','listing','map','marquee','menu','meta','multicol','nextid','nobr','noembed','noframes','nolayer','noscript','object','ol','optgroup','option','p','param','plaintext','pre','q','rb','rbc','rp','rt','rtc','ruby','s','samp','script','select','small','spacer','span','strike','strong','style','sub','sup','table','tbody','td','textarea','tfoot','th','thead','tr','tt','u','ul','var','wbr','xml','xmp'];
-
+var auto;
+var literalSearch = new RegExp("\'[a-zA-Z\s]*\'", 'g');
 window.onload = function() {
     editor = ace.edit("editor");
+
     //editor.getSession().setUseWrapMode(true);
-    editor.getSession().setValue('<!DOCTYPE HTML>\n<html>\n<head>\n	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n	<title>Untitled Document</title>\n</head>\n\n<body>    \n</body>\n</html>');
     editor.setTheme("ace/theme/clouds");
     var Mode = require("ace/mode/sql").Mode;
     var Autocomplete = require('globalmaksimum/autocomplete').Autocomplete;
     var timer = null;
     var variableOptions = ['city','team','school','age','startDate'];
+    auto = new Autocomplete(editor);
     editor.getSession().setMode(new Mode());
 
     editor.setBehavioursEnabled(false);
-
-    editor.commands.addCommand({
-        name: "autocomplete",
-        exec: function(editor, args, request) {
-            var sel = editor.getSelection();
-            var session = editor.getSession();
-
-            var lead = sel.getSelectionLead();
-
-            var pos = editor.renderer.textToScreenCoordinates(lead.row, lead.column);
-
-            var ac;
-
-            if (document.getElementById('ac')) {
-                ac = document.getElementById('ac');
-            } else {
-                ac = document.createElement('select');
-                ac.id = 'ac';
-                ac.namme = 'ac';
-                ac.style.position = 'absolute';
-                ac.style.zIndex = 100;
-                ;
-                ac.style.width = '140px';
-                ac.size = 10;
-            }
-
-            /*
-             ac.addEventListener('click',function(e){
-             //console.log('yo');
-             })
-             */
-
-            //calulate the container offset
-            var obj = editor.container;
-
-            var curleft = 0;
-            var curtop = 0;
-            if (obj.offsetParent) {
-                do {
-                    curleft += obj.offsetLeft;
-                    curtop += obj.offsetTop;
-                } while (obj = obj.offsetParent);
-            }
-
-            //position autocomplete
-            ac.style.top = pos.pageY - curtop + 20 + "px";
-            ac.style.left = pos.pageX - curleft + "px";
-            ac.style.display = 'block';
-            ac.style.background = 'white';
-
-            var sel = editor.selection.getRange();
-
-            var line = editor.getSession().getLine(sel.start.row);
-
-            line = line.substr(0, sel.start.col);
-
-            var pos = line.lastIndexOf('<');
-
-            var text = line.substr(pos + 1);
-
-            var tag;
-            for (i in html_tags) {
-                if (!html_tags.hasOwnProperty(i)) {
-                    continue;
-                }
-
-                tag = html_tags[i];
-
-                if (text) {
-                    if (text != tag.substr(0, text.length)) {
-                        continue;
-                    }
-                }
-
-                var option = document.createElement('option');
-                option.text = tag;
-                option.value = tag;
-
-                try {
-                    ac.add(option, null); // standards compliant; doesn't work in IE
-                }
-                catch(ex) {
-                    ac.add(option); // IE only
-                }
-            }
-            ;
-
-            if (ac.length == 0) {
-                autocompleting = false;
-
-                return false;
-            }
-
-            ac.selectedIndex = 0;
-
-            editor.container.appendChild(ac);
-
-            autocompleting = true;
-        }
-    });
-
-    var triggerAutoComplete = function(editor, args, request) {
-        editor.insert('<');
-
-
-        var command = editor.commands.commands['autocomplete'];
-
-        command.exec(editor);
-    }
-    editor.commands.addCommand({
-        name: "langle",
-        bindKey: {
-            win: "Shift-,", // <
-            mac: "Shift-,", // <
-            sender: "editor"
-        },
-        exec: triggerAutoComplete
-    });
-    editor.commands.addCommand({
-        name: "langle2",
-        bindKey: {
-            win: "<", // <
-            mac: "<", // <
-            sender: "editor"
-        },
-        exec: triggerAutoComplete
-    });
-
-    editor.commands.addCommand({
-        name: "up",
-        bindKey: {
-            win: "Up",
-            mac: "Up",
-            sender: "editor"
-        },
-        exec: function(editor, args, request) {
-            if (document.getElementById('ac')) {
-                var select = document.getElementById('ac');
-
-                if (select.selectedIndex == 0) {
-                    select.selectedIndex = select.options.length - 1;
-                } else {
-                    select.selectedIndex = select.selectedIndex - 1;
-                }
-            } else {
-                editor.navigateUp(args.times);
-            }
-        }
-    });
-
-    editor.commands.addCommand({
-        name: "down",
-        bindKey: {
-            win: "Down",
-            mac: "Down",
-            sender: "editor"
-        },
-        exec: function(editor, args, request) {
-            if (document.getElementById('ac')) {
-                var select = document.getElementById('ac');
-
-                if (select.selectedIndex == select.options.length - 1) {
-                    select.selectedIndex = 0;
-                } else {
-                    select.selectedIndex = select.selectedIndex + 1;
-                }
-            } else {
-                editor.navigateDown(args.times);
-            }
-        }
-    });
-
-    editor.commands.addCommand({
-        name: "escape",
-        bindKey: {
-            win: "Esc",
-            mac: "Esc",
-            sender: "editor"
-        },
-        exec: function(editor, args, request) {
-            if (document.getElementById('ac')) {
-                var ac = document.getElementById('ac');
-
-                ac.parentNode.removeChild(ac);
-
-                autocompleting = false;
-            }
-        }
-    });
-
-    editor.commands.addCommand({
-        name: "enter",
-        bindKey: {
-            win: "Return",
-            mac: "Return",
-            sender: "editor"
-        },
-        exec: function(editor, args, request) {
-            if (document.getElementById('ac')) {
-                var select = document.getElementById('ac');
-                var tag = select.options[select.selectedIndex].value;
-
-                var sel = editor.selection.getRange();
-
-                var line = editor.getSession().getLine(sel.start.row);
-
-                line = line.substr(0, sel.start.col);
-
-                var pos = line.lastIndexOf('<');
-
-                var text = line.substr(pos + 1);
-
-                sel.start.column = sel.start.column - text.length
-
-                editor.selection.setSelectionRange(sel);
-
-                editor.insert(tag);
-
-                autocompleting = false;
-            } else {
-                editor.insert('\n');
-            }
-        }
-    });
 
     editor.commands.addCommand({
         name: "inserttext",
@@ -276,6 +52,19 @@ window.onload = function() {
             }
         }
     });
+    editor.commands.addCommand({
+        name: "triggerAutocomplete",
+        bindKey: {
+            win: "Ctrl-Space",
+            mac: "Ctrl-Space",
+            sender: "editor"
+        },
+        exec: function(editor, args, request) {
+            setTimeout(function() {
+                generateAdvice(AdviceOn.COMMAND);
+            }, 0);
+        }
+    });
 
     function isEndOfDocument() {
         var cursorPosition = editor.getCursorPosition();
@@ -286,22 +75,39 @@ window.onload = function() {
         return false;
     }
 
-    function adviceGenerator() {
+    var AdviceOn = {
+        INPUT:1,
+        CURSOR:2,
+        COMMAND:3
+    };
+
+    function generateAdvice(adviceOn) {
         var editorValue = editor.getSession().getValue();
-        if (isEndOfDocument()) {
+        if (showAdvice(adviceOn)) {
             try {
                 var parsed = dslparser.parse(editorValue);
                 //jsDump.parse(parsed)
                 if (parsed.length != 0) {
-                    //TODO : show someoperator choices
+                    //TODO : show some operator choices
                 }
             } catch(e) {
                 //we are at the end of document and parsing failed show recommendation
                 // Make line red
+                console.log(e.line);
+                if (!e.line) {
+                    console.log('undefined line');
+                }
                 $('#editor .ace_text-layer .ace_line:nth-child(' + e.line + ')').toggleClass('syntax_error');
-                showRecommendations(e);
+                if (isEndOfDocument())
+                    showParserRecommendations(e);
+                else
+                    getCursorContextRecommendations(e);
             }
         }
+    }
+
+    function showAdvice(adviceOn) {
+        return adviceOn == AdviceOn.COMMAND || ((adviceOn == AdviceOn.INPUT || adviceOn==AdviceOn.CURSOR) && isEndOfDocument());
     }
 
     function preparefailuresExpected(error) {
@@ -320,23 +126,10 @@ window.onload = function() {
         return failuresExpectedUnique;
     }
 
-    function matches(text) {
-        var regEx = new RegExp('[\\w\\d]*' + text + '[\\w\\d]*', 'i');
-        var result = []
-        $.each(variableOptions, function(index, data) {
-            if (regEx.test(data))
-                result.push(data);
-        });
-        return result;
-    }
-
-    var auto = new Autocomplete(editor, matches);
-
-    function showRecommendations(error) {
+    function showParserRecommendations(error) {
         var failuresExpectedUnique = preparefailuresExpected(error);
         if ($.inArray('variable', failuresExpectedUnique) != -1) {
             //get all the variables and show recommedations
-
             var range = editor.getSelectionRange();
             var cursor = editor.getCursorPosition();
             var range = editor.getSession().getWordRange(cursor.row, cursor.column);
@@ -344,38 +137,90 @@ window.onload = function() {
                     && range.start.column <= error.column - 1 && range.end.column >= error.column - 1) {
 
                 //var keywordColumn = keywordRange.end.column;
-                auto.activate(error.line-1, error.column-1);
-                auto.suggest('');
+                auto.activate(error.line - 1, error.column - 1);
+                auto.suggest('', variableOptions);
                 console.log('variable required');
             }
+        } else if ($.inArray('tuple', failuresExpectedUnique) != -1) {
+            //show tupple completation
+        } else {
+            var result = [];
+            $.each(failuresExpectedUnique, function(index, value) {
+                result.push(value.replace(/"/g, ''));
+            });
+
         }
 
         //if(failuresExpectedUnique)
     }
 
-    function scheduleAdviceGenerator() {
+    function scheduleAdviceGenerator(advice) {
         timer = setTimeout(function() {
-            adviceGenerator();
+            generateAdvice(advice);
             timer = null;
         }, 300);
     }
 
-    editor.getSession().selection.on('changeCursor', function(oldRange, newRange, newText) {
+    function triggerChange(advice) {
         //TODO:do we have to clear red line here or after parsing
         $('#editor .ace_text-layer .ace_line').toggleClass('syntax_error', false);
 
         if (timer == null) {
-            scheduleAdviceGenerator();
+            scheduleAdviceGenerator(advice);
         } else {
             clearTimeout(timer);
-            scheduleAdviceGenerator();
+            scheduleAdviceGenerator(advice);
         }
-        if (document.getElementById('ac')) {
-            var ac = document.getElementById('ac');
+    }
 
-            ac.parentNode.removeChild(ac);
+    function getWordRange(row, column) {
+        var cursor = this.getCursor();
+        var line = this.getLine(row);
+
+        var inToken = false;
+        if (column > 0) {
+            inToken = !!line.charAt(column - 1).match(this.tokenRe);
         }
+
+        if (!inToken) {
+            inToken = !!line.charAt(column).match(this.tokenRe);
+        }
+
+        var re = inToken ? this.tokenRe : this.nonTokenRe;
+
+        var start = column;
+        if (start > 0) {
+            do {
+                start--;
+            }
+            while (start >= 0 && line.charAt(start).match(re));
+            start++;
+        }
+
+        var end = column;
+        while (end < line.length && line.charAt(end).match(re)) {
+            end++;
+        }
+
+        return new Range(row, start, row, end);
+    }
+
+    function isStringLiteral(line, row, column) {
+        var literalArray = line.match(literalSearch);
+        for (var i in literalArray){
+            var start=line.indexOf(literalArray[i]);
+            var end = start+literalArray[i].length;
+        }
+    }
+
+    editor.getSession().addEventListener('change', function(oldRange, newRange, newText) {
+        triggerChange(AdviceOn.CURSOR);
     });
+    editor.getSession().selection.on('changeCursor', function(oldRange, newRange, newText) {
+        triggerChange(AdviceOn.INPUT);
+
+    });
+
 };
 </script>
 
