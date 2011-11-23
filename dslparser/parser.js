@@ -485,7 +485,8 @@ dslparser = (function(){
           return cachedResult.result;
         }
         
-        
+        var savedReportMatchFailures = reportMatchFailures;
+        reportMatchFailures = false;
         var savedPos0 = pos;
         if (input.substr(pos, 4) === "city") {
           var result5 = "city";
@@ -536,8 +537,10 @@ dslparser = (function(){
           var result0 = null;
           pos = savedPos0;
         }
-        
-        
+        reportMatchFailures = savedReportMatchFailures;
+        if (reportMatchFailures && result0 === null) {
+          matchFailed("variable");
+        }
         
         cache[cacheKey] = {
           nextPos: pos,
@@ -1413,7 +1416,7 @@ dslparser = (function(){
                     clause:{
                            operator:operator,
                            values:dslcontiniousval
-                    },
+                    }
                   };
           })(result1[0], result1[2], result1[4])
           : null;
@@ -1549,7 +1552,8 @@ dslparser = (function(){
           return cachedResult.result;
         }
         
-        
+        var savedReportMatchFailures = reportMatchFailures;
+        reportMatchFailures = false;
         var savedPos0 = pos;
         if (input.substr(pos, 3) === "age") {
           var result4 = "age";
@@ -1587,8 +1591,10 @@ dslparser = (function(){
           var result0 = null;
           pos = savedPos0;
         }
-        
-        
+        reportMatchFailures = savedReportMatchFailures;
+        if (reportMatchFailures && result0 === null) {
+          matchFailed("variable");
+        }
         
         cache[cacheKey] = {
           nextPos: pos,
@@ -1925,7 +1931,8 @@ dslparser = (function(){
           errorPosition.line,
           errorPosition.column,
           lastoperator ? lastoperator : null,
-          lastvariable ? lastvariable : null
+          lastvariable ? lastvariable : null,
+          rightmostMatchFailuresExpected
         );
       }
       
@@ -1938,13 +1945,14 @@ dslparser = (function(){
   
   /* Thrown when a parser encounters a syntax error. */
   
-  result.SyntaxError = function(message, line, column,lastoperator,lastvariable) {
+  result.SyntaxError = function(message, line, column,lastoperator,lastvariable,rightmostMatchFailuresExpected) {
     this.name = 'SyntaxError';
     this.message = message;
     this.line = line;
     this.column = column;
     this.lastoperator = lastoperator;
     this.lastvariable = lastvariable;
+    this.rightmostMatchFailuresExpected = rightmostMatchFailuresExpected;
   };
   
   result.SyntaxError.prototype = Error.prototype;
