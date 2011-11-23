@@ -20,7 +20,7 @@ dsloperator
   = operator:('and' / 'or') {return operator;}
 
 dslexpression 
-  = dsldiscreateexp / dslcontiniousexp
+  = dsldiscreateexp / dslcontiniousexp {lastoperator=null;lastvariable=null;}
 
 
 dsldiscreateexp
@@ -30,13 +30,13 @@ dsldiscreatevar 'variable'
   = variable:('city'/'team'/'school') {lastvariable=variable;return variable;}
 
 dsldiscreateclause
-  = operator:discreateinoperator whiteSpace values:tupple {return {operator:operator,values:values};}
+  = operator:discreateinoperator whiteSpace values:tuple {return {operator:operator,values:values};}
    / operator:discreateequalityoperators whiteSpace values:literalValue {return {operator:operator,values:values};}
 
 discreateinoperator = operator:('in') {lastoperator=operator;return operator;}
 discreateequalityoperators = operator:('=' / '!=') {lastoperator=operator;return operator;}
 
-tupple "tuple"
+tuple "tuple"
   = '(' whiteSpace stringValues:stringValues whiteSpace ')' {return stringValues;}
     / '(' whiteSpace numberValues:numberValues whiteSpace ')' {return numberValues;}
 
@@ -56,7 +56,7 @@ return parseFloat(digits.join(""), 10); }
 
 literalValue=stringValue/numberValue
 
-dslcontiniousexp = dslcontiniousvar:dslcontiniousvar whiteSpace operator:dslcontiniousoperators whiteSpace dslcontiniousval:dslcontiniousval whiteSpace & { console.log(operator); return true;}
+dslcontiniousexp = dslcontiniousvar:dslcontiniousvar whiteSpace operator:dslcontiniousoperators whiteSpace dslcontiniousval:dslcontiniousval whiteSpace 
 {
         return {
           variable:dslcontiniousvar,

@@ -29,7 +29,7 @@ dslparser = (function(){
         "start": parse_start,
         "stringValue": parse_stringValue,
         "stringValues": parse_stringValues,
-        "tupple": parse_tupple,
+        "tuple": parse_tuple,
         "whiteSpace": parse_whiteSpace
       };
       
@@ -401,11 +401,21 @@ dslparser = (function(){
         }
         
         
-        var result2 = parse_dsldiscreateexp();
-        if (result2 !== null) {
-          var result0 = result2;
+        var result4 = parse_dsldiscreateexp();
+        if (result4 !== null) {
+          var result0 = result4;
         } else {
-          var result1 = parse_dslcontiniousexp();
+          var savedPos0 = pos;
+          var result2 = parse_dslcontiniousexp();
+          var result3 = result2 !== null
+            ? (function() {lastoperator=null;lastvariable=null;})()
+            : null;
+          if (result3 !== null) {
+            var result1 = result3;
+          } else {
+            var result1 = null;
+            pos = savedPos0;
+          }
           if (result1 !== null) {
             var result0 = result1;
           } else {
@@ -564,7 +574,7 @@ dslparser = (function(){
         if (result10 !== null) {
           var result11 = parse_whiteSpace();
           if (result11 !== null) {
-            var result12 = parse_tupple();
+            var result12 = parse_tuple();
             if (result12 !== null) {
               var result8 = [result10, result11, result12];
             } else {
@@ -731,8 +741,8 @@ dslparser = (function(){
         return result0;
       }
       
-      function parse_tupple() {
-        var cacheKey = 'tupple@' + pos;
+      function parse_tuple() {
+        var cacheKey = 'tuple@' + pos;
         var cachedResult = cache[cacheKey];
         if (cachedResult) {
           pos = cachedResult.nextPos;
@@ -1378,13 +1388,7 @@ dslparser = (function(){
                 if (result7 !== null) {
                   var result8 = parse_whiteSpace();
                   if (result8 !== null) {
-                    var result9 = (function() { console.log(operator); return true;})() ? '' : null;
-                    if (result9 !== null) {
-                      var result1 = [result3, result4, result5, result6, result7, result8, result9];
-                    } else {
-                      var result1 = null;
-                      pos = savedPos1;
-                    }
+                    var result1 = [result3, result4, result5, result6, result7, result8];
                   } else {
                     var result1 = null;
                     pos = savedPos1;
