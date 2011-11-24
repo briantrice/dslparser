@@ -1,14 +1,20 @@
 {
  var lastoperator;
  var lastvariable;
+ var errorRecoveryOpen=true;
 }
 start
   = dslconstraint/whiteSpace
 
 whiteSpace = whiteSpace:(' '/'\n')* {return '';}
-
+errorRecovery 'errorRecovery'= [a-zA-Z0-9*]+ {
+console.log('lastoperator: '+lastoperator+' lastvariable '+lastvariable);
+if(errorRecoveryOpen)
+return 'errorRecovery';
+return null;
+}
 dslconstraint
-  = leftdslexpression:dslexpression whiteSpace rightdslexpressions:(dsloperator:dsloperator whiteSpace dslexpression:dslexpression {return [dsloperator,dslexpression];})* 
+  = whiteSpace leftdslexpression:dslexpression whiteSpace rightdslexpressions:rightdslexpressions
 {
   var result=[];
   result.push(leftdslexpression);
@@ -16,11 +22,22 @@ dslconstraint
       result=result.concat(rightdslexpressions[i]);
   return result;
 }
-dsloperator
-  = operator:('and' / 'or') {return operator;}
 
+rightdslexpressions=(dsloperator:dsloperator whiteSpace dslexpression:dslexpression {return [dsloperator,dslexpression];}
+/ whiteSpace errorRecovery:errorRecovery whiteSpace {return errorRecovery;} )*
+
+dsloperator
+  = operator:('and' / 'or' / whiteSpace) 
+{
+if(errorRecoveryOpen && operator=='')
+return 'errorRecovery';
+else if(!errorRecoveryOpen && operator=='')
+return null;
+return operator;
+}
 dslexpression 
-  = dsldiscreateexp / dslcontiniousexp {lastoperator=null;lastvariable=null;}
+  = exp:dsldiscreateexp / exp:dslcontiniousexp / exp:errorRecovery
+{lastoperator=null;lastvariable=null;return exp;}
 
 
 dsldiscreateexp

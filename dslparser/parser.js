@@ -23,9 +23,11 @@ dslparser = (function(){
         "dsldiscreatevar": parse_dsldiscreatevar,
         "dslexpression": parse_dslexpression,
         "dsloperator": parse_dsloperator,
+        "errorRecovery": parse_errorRecovery,
         "literalValue": parse_literalValue,
         "numberValue": parse_numberValue,
         "numberValues": parse_numberValues,
+        "rightdslexpressions": parse_rightdslexpressions,
         "start": parse_start,
         "stringValue": parse_stringValue,
         "stringValues": parse_stringValues,
@@ -218,6 +220,66 @@ dslparser = (function(){
         return result0;
       }
       
+      function parse_errorRecovery() {
+        var cacheKey = 'errorRecovery@' + pos;
+        var cachedResult = cache[cacheKey];
+        if (cachedResult) {
+          pos = cachedResult.nextPos;
+          return cachedResult.result;
+        }
+        
+        var savedReportMatchFailures = reportMatchFailures;
+        reportMatchFailures = false;
+        var savedPos0 = pos;
+        if (input.substr(pos).match(/^[a-zA-Z0-9*]/) !== null) {
+          var result3 = input.charAt(pos);
+          pos++;
+        } else {
+          var result3 = null;
+          if (reportMatchFailures) {
+            matchFailed("[a-zA-Z0-9*]");
+          }
+        }
+        if (result3 !== null) {
+          var result1 = [];
+          while (result3 !== null) {
+            result1.push(result3);
+            if (input.substr(pos).match(/^[a-zA-Z0-9*]/) !== null) {
+              var result3 = input.charAt(pos);
+              pos++;
+            } else {
+              var result3 = null;
+              if (reportMatchFailures) {
+                matchFailed("[a-zA-Z0-9*]");
+              }
+            }
+          }
+        } else {
+          var result1 = null;
+        }
+        var result2 = result1 !== null
+          ? (function() {
+          console.log('lastoperator: '+lastoperator+' lastvariable '+lastvariable);
+          return 'errorRecovery';})()
+          : null;
+        if (result2 !== null) {
+          var result0 = result2;
+        } else {
+          var result0 = null;
+          pos = savedPos0;
+        }
+        reportMatchFailures = savedReportMatchFailures;
+        if (reportMatchFailures && result0 === null) {
+          matchFailed("errorRecovery");
+        }
+        
+        cache[cacheKey] = {
+          nextPos: pos,
+          result:  result0
+        };
+        return result0;
+      }
+      
       function parse_dslconstraint() {
         var cacheKey = 'dslconstraint@' + pos;
         var cachedResult = cache[cacheKey];
@@ -229,76 +291,19 @@ dslparser = (function(){
         
         var savedPos0 = pos;
         var savedPos1 = pos;
-        var result3 = parse_dslexpression();
+        var result3 = parse_whiteSpace();
         if (result3 !== null) {
-          var result4 = parse_whiteSpace();
+          var result4 = parse_dslexpression();
           if (result4 !== null) {
-            var result5 = [];
-            var savedPos2 = pos;
-            var savedPos3 = pos;
-            var result9 = parse_dsloperator();
-            if (result9 !== null) {
-              var result10 = parse_whiteSpace();
-              if (result10 !== null) {
-                var result11 = parse_dslexpression();
-                if (result11 !== null) {
-                  var result7 = [result9, result10, result11];
-                } else {
-                  var result7 = null;
-                  pos = savedPos3;
-                }
-              } else {
-                var result7 = null;
-                pos = savedPos3;
-              }
-            } else {
-              var result7 = null;
-              pos = savedPos3;
-            }
-            var result8 = result7 !== null
-              ? (function(dsloperator, dslexpression) {return [dsloperator,dslexpression];})(result7[0], result7[2])
-              : null;
-            if (result8 !== null) {
-              var result6 = result8;
-            } else {
-              var result6 = null;
-              pos = savedPos2;
-            }
-            while (result6 !== null) {
-              result5.push(result6);
-              var savedPos2 = pos;
-              var savedPos3 = pos;
-              var result9 = parse_dsloperator();
-              if (result9 !== null) {
-                var result10 = parse_whiteSpace();
-                if (result10 !== null) {
-                  var result11 = parse_dslexpression();
-                  if (result11 !== null) {
-                    var result7 = [result9, result10, result11];
-                  } else {
-                    var result7 = null;
-                    pos = savedPos3;
-                  }
-                } else {
-                  var result7 = null;
-                  pos = savedPos3;
-                }
-              } else {
-                var result7 = null;
-                pos = savedPos3;
-              }
-              var result8 = result7 !== null
-                ? (function(dsloperator, dslexpression) {return [dsloperator,dslexpression];})(result7[0], result7[2])
-                : null;
-              if (result8 !== null) {
-                var result6 = result8;
-              } else {
-                var result6 = null;
-                pos = savedPos2;
-              }
-            }
+            var result5 = parse_whiteSpace();
             if (result5 !== null) {
-              var result1 = [result3, result4, result5];
+              var result6 = parse_rightdslexpressions();
+              if (result6 !== null) {
+                var result1 = [result3, result4, result5, result6];
+              } else {
+                var result1 = null;
+                pos = savedPos1;
+              }
             } else {
               var result1 = null;
               pos = savedPos1;
@@ -318,13 +323,230 @@ dslparser = (function(){
             for(var i in rightdslexpressions)
                 result=result.concat(rightdslexpressions[i]);
             return result;
-          })(result1[0], result1[2])
+          })(result1[1], result1[3])
           : null;
         if (result2 !== null) {
           var result0 = result2;
         } else {
           var result0 = null;
           pos = savedPos0;
+        }
+        
+        
+        
+        cache[cacheKey] = {
+          nextPos: pos,
+          result:  result0
+        };
+        return result0;
+      }
+      
+      function parse_rightdslexpressions() {
+        var cacheKey = 'rightdslexpressions@' + pos;
+        var cachedResult = cache[cacheKey];
+        if (cachedResult) {
+          pos = cachedResult.nextPos;
+          return cachedResult.result;
+        }
+        
+        
+        var result0 = [];
+        var savedPos4 = pos;
+        var savedPos5 = pos;
+        var result16 = parse_dsloperator();
+        if (result16 !== null) {
+          var result17 = parse_whiteSpace();
+          if (result17 !== null) {
+            var result18 = parse_dslexpression();
+            if (result18 !== null) {
+              var result14 = [result16, result17, result18];
+            } else {
+              var result14 = null;
+              pos = savedPos5;
+            }
+          } else {
+            var result14 = null;
+            pos = savedPos5;
+          }
+        } else {
+          var result14 = null;
+          pos = savedPos5;
+        }
+        var result15 = result14 !== null
+          ? (function(dsloperator, dslexpression) {return [dsloperator,dslexpression];})(result14[0], result14[2])
+          : null;
+        if (result15 !== null) {
+          var result13 = result15;
+        } else {
+          var result13 = null;
+          pos = savedPos4;
+        }
+        if (result13 !== null) {
+          var result1 = result13;
+        } else {
+          var savedPos2 = pos;
+          var savedPos3 = pos;
+          var result11 = parse_whiteSpace();
+          if (result11 !== null) {
+            var result12 = parse_dslexpression();
+            if (result12 !== null) {
+              var result9 = [result11, result12];
+            } else {
+              var result9 = null;
+              pos = savedPos3;
+            }
+          } else {
+            var result9 = null;
+            pos = savedPos3;
+          }
+          var result10 = result9 !== null
+            ? (function(dslexpression) {return [dslexpression];})(result9[1])
+            : null;
+          if (result10 !== null) {
+            var result8 = result10;
+          } else {
+            var result8 = null;
+            pos = savedPos2;
+          }
+          if (result8 !== null) {
+            var result1 = result8;
+          } else {
+            var savedPos0 = pos;
+            var savedPos1 = pos;
+            var result5 = parse_whiteSpace();
+            if (result5 !== null) {
+              var result6 = parse_errorRecovery();
+              if (result6 !== null) {
+                var result7 = parse_whiteSpace();
+                if (result7 !== null) {
+                  var result3 = [result5, result6, result7];
+                } else {
+                  var result3 = null;
+                  pos = savedPos1;
+                }
+              } else {
+                var result3 = null;
+                pos = savedPos1;
+              }
+            } else {
+              var result3 = null;
+              pos = savedPos1;
+            }
+            var result4 = result3 !== null
+              ? (function(errorRecovery) {return errorRecovery;})(result3[1])
+              : null;
+            if (result4 !== null) {
+              var result2 = result4;
+            } else {
+              var result2 = null;
+              pos = savedPos0;
+            }
+            if (result2 !== null) {
+              var result1 = result2;
+            } else {
+              var result1 = null;;
+            };
+          };
+        }
+        while (result1 !== null) {
+          result0.push(result1);
+          var savedPos4 = pos;
+          var savedPos5 = pos;
+          var result16 = parse_dsloperator();
+          if (result16 !== null) {
+            var result17 = parse_whiteSpace();
+            if (result17 !== null) {
+              var result18 = parse_dslexpression();
+              if (result18 !== null) {
+                var result14 = [result16, result17, result18];
+              } else {
+                var result14 = null;
+                pos = savedPos5;
+              }
+            } else {
+              var result14 = null;
+              pos = savedPos5;
+            }
+          } else {
+            var result14 = null;
+            pos = savedPos5;
+          }
+          var result15 = result14 !== null
+            ? (function(dsloperator, dslexpression) {return [dsloperator,dslexpression];})(result14[0], result14[2])
+            : null;
+          if (result15 !== null) {
+            var result13 = result15;
+          } else {
+            var result13 = null;
+            pos = savedPos4;
+          }
+          if (result13 !== null) {
+            var result1 = result13;
+          } else {
+            var savedPos2 = pos;
+            var savedPos3 = pos;
+            var result11 = parse_whiteSpace();
+            if (result11 !== null) {
+              var result12 = parse_dslexpression();
+              if (result12 !== null) {
+                var result9 = [result11, result12];
+              } else {
+                var result9 = null;
+                pos = savedPos3;
+              }
+            } else {
+              var result9 = null;
+              pos = savedPos3;
+            }
+            var result10 = result9 !== null
+              ? (function(dslexpression) {return [dslexpression];})(result9[1])
+              : null;
+            if (result10 !== null) {
+              var result8 = result10;
+            } else {
+              var result8 = null;
+              pos = savedPos2;
+            }
+            if (result8 !== null) {
+              var result1 = result8;
+            } else {
+              var savedPos0 = pos;
+              var savedPos1 = pos;
+              var result5 = parse_whiteSpace();
+              if (result5 !== null) {
+                var result6 = parse_errorRecovery();
+                if (result6 !== null) {
+                  var result7 = parse_whiteSpace();
+                  if (result7 !== null) {
+                    var result3 = [result5, result6, result7];
+                  } else {
+                    var result3 = null;
+                    pos = savedPos1;
+                  }
+                } else {
+                  var result3 = null;
+                  pos = savedPos1;
+                }
+              } else {
+                var result3 = null;
+                pos = savedPos1;
+              }
+              var result4 = result3 !== null
+                ? (function(errorRecovery) {return errorRecovery;})(result3[1])
+                : null;
+              if (result4 !== null) {
+                var result2 = result4;
+              } else {
+                var result2 = null;
+                pos = savedPos0;
+              }
+              if (result2 !== null) {
+                var result1 = result2;
+              } else {
+                var result1 = null;;
+              };
+            };
+          }
         }
         
         
@@ -347,40 +569,50 @@ dslparser = (function(){
         
         var savedPos0 = pos;
         if (input.substr(pos, 3) === "and") {
-          var result4 = "and";
+          var result6 = "and";
           pos += 3;
         } else {
-          var result4 = null;
+          var result6 = null;
           if (reportMatchFailures) {
             matchFailed("\"and\"");
           }
         }
-        if (result4 !== null) {
-          var result1 = result4;
+        if (result6 !== null) {
+          var result3 = result6;
         } else {
           if (input.substr(pos, 2) === "or") {
-            var result3 = "or";
+            var result5 = "or";
             pos += 2;
           } else {
-            var result3 = null;
+            var result5 = null;
             if (reportMatchFailures) {
               matchFailed("\"or\"");
             }
           }
-          if (result3 !== null) {
-            var result1 = result3;
+          if (result5 !== null) {
+            var result3 = result5;
           } else {
-            var result1 = null;;
+            var result3 = null;;
           };
         }
-        var result2 = result1 !== null
-          ? (function(operator) {return operator;})(result1)
+        var result4 = result3 !== null
+          ? (function(operator) {return operator;})(result3)
           : null;
+        if (result4 !== null) {
+          var result2 = result4;
+        } else {
+          var result2 = null;
+          pos = savedPos0;
+        }
         if (result2 !== null) {
           var result0 = result2;
         } else {
-          var result0 = null;
-          pos = savedPos0;
+          var result1 = parse_errorRecovery();
+          if (result1 !== null) {
+            var result0 = result1;
+          } else {
+            var result0 = null;;
+          };
         }
         
         
@@ -401,25 +633,30 @@ dslparser = (function(){
         }
         
         
-        var result4 = parse_dsldiscreateexp();
-        if (result4 !== null) {
-          var result0 = result4;
+        var result5 = parse_dsldiscreateexp();
+        if (result5 !== null) {
+          var result0 = result5;
         } else {
-          var savedPos0 = pos;
-          var result2 = parse_dslcontiniousexp();
-          var result3 = result2 !== null
-            ? (function() {lastoperator=null;lastvariable=null;})()
-            : null;
-          if (result3 !== null) {
-            var result1 = result3;
+          var result4 = parse_dslcontiniousexp();
+          if (result4 !== null) {
+            var result0 = result4;
           } else {
-            var result1 = null;
-            pos = savedPos0;
-          }
-          if (result1 !== null) {
-            var result0 = result1;
-          } else {
-            var result0 = null;;
+            var savedPos0 = pos;
+            var result2 = parse_errorRecovery();
+            var result3 = result2 !== null
+              ? (function(exp) {lastoperator=null;lastvariable=null;return exp;})(result2)
+              : null;
+            if (result3 !== null) {
+              var result1 = result3;
+            } else {
+              var result1 = null;
+              pos = savedPos0;
+            }
+            if (result1 !== null) {
+              var result0 = result1;
+            } else {
+              var result0 = null;;
+            };
           };
         }
         
