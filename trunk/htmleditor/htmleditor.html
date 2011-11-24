@@ -33,6 +33,7 @@ window.onload = function() {
     var timer = null;
     var variableOptions = ['city','team','school','age','startDate'];
     auto = new Autocomplete(editor);
+    var Range = require('ace/range').Range;
     editor.getSession().setMode(new Mode());
 
     editor.setBehavioursEnabled(false);
@@ -85,29 +86,38 @@ window.onload = function() {
         var editorValue = editor.getSession().getValue();
         if (showAdvice(adviceOn)) {
             try {
-                var parsed = dslparser.parse(editorValue);
-                //jsDump.parse(parsed)
-                if (parsed.length != 0) {
-                    //TODO : show some operator choices
+                var parseValue = null;
+                if (adviceOn == AdviceOn.COMMAND) {
+                    var cursor = editor.getCursorPosition();
+                    parseValue = editor.getSession().getTextRange(new Range(0, 0, cursor.row, cursor.column));
+                } else
+                    parseValue = editorValue;
+                console.log(parseValue);
+                dslparser.parse(parseValue);
+                try {
+                    dslparser.parse(editorValue + ' a');
+                } catch(e) {
+                    showParserRecommendations(e);
                 }
+
             } catch(e) {
                 //we are at the end of document and parsing failed show recommendation
                 // Make line red
                 console.log(e.line);
                 if (!e.line) {
                     console.log('undefined line');
-                }
-                $('#editor .ace_text-layer .ace_line:nth-child(' + e.line + ')').toggleClass('syntax_error');
-                if (isEndOfDocument())
+                } else
+                    $('#editor .ace_text-layer .ace_line:nth-child(' + e.line + ')').toggleClass('syntax_error');
+                if (adviceOn == AdviceOn.INPUT || isEndOfDocument())
                     showParserRecommendations(e);
                 else
-                    getCursorContextRecommendations(e);
+                    showContextRecommendations(e);
             }
         }
     }
 
     function showAdvice(adviceOn) {
-        return adviceOn == AdviceOn.COMMAND || ((adviceOn == AdviceOn.INPUT || adviceOn==AdviceOn.CURSOR) && isEndOfDocument());
+        return adviceOn == AdviceOn.COMMAND || (adviceOn == AdviceOn.INPUT && isEndOfDocument());
     }
 
     function preparefailuresExpected(error) {
@@ -139,19 +149,27 @@ window.onload = function() {
                 //var keywordColumn = keywordRange.end.column;
                 auto.activate(error.line - 1, error.column - 1);
                 auto.suggest('', variableOptions);
-                console.log('variable required');
             }
         } else if ($.inArray('tuple', failuresExpectedUnique) != -1) {
             //show tupple completation
+            console.log('tuple recommendation');
         } else {
             var result = [];
             $.each(failuresExpectedUnique, function(index, value) {
                 result.push(value.replace(/"/g, ''));
             });
-
+            if (result.length > 0) {
+                auto.activate(error.line - 1, error.column - 1);
+                auto.suggest('', result);
+            }else{
+                 console.log('content assist notavailable');
+            }
         }
 
-        //if(failuresExpectedUnique)
+    }
+
+    function showContextRecommendations(error) {
+
     }
 
     function scheduleAdviceGenerator(advice) {
@@ -207,18 +225,17 @@ window.onload = function() {
 
     function isStringLiteral(line, row, column) {
         var literalArray = line.match(literalSearch);
-        for (var i in literalArray){
-            var start=line.indexOf(literalArray[i]);
-            var end = start+literalArray[i].length;
+        for (var i in literalArray) {
+            var start = line.indexOf(literalArray[i]);
+            var end = start + literalArray[i].length;
         }
     }
 
     editor.getSession().addEventListener('change', function(oldRange, newRange, newText) {
-        triggerChange(AdviceOn.CURSOR);
+        triggerChange(AdviceOn.INPUT);
     });
     editor.getSession().selection.on('changeCursor', function(oldRange, newRange, newText) {
-        triggerChange(AdviceOn.INPUT);
-
+        triggerChange(AdviceOn.CURSOR);
     });
 
 };
