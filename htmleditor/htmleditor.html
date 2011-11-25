@@ -18,11 +18,18 @@
 <script type="text/javascript" src="../jquery-ui-1.8.16.custom.min.js"></script>
 
 <script type="text/javascript">
+
 var editor;
 
 var autocompleting = false;
 var auto;
-var literalSearch = new RegExp("\'[a-zA-Z\s]*\'", 'g');
+const tupleRegex = new RegExp("\(('[a-zA-Z0-9\s]')(,'[a-zA-Z0-9\s]')*\)", 'g');
+const stringRegex = new RegExp("'[a-zA-Z0-9\s]*'", 'g');
+const numberRegex = new RegExp("[0-9]*(,[0-9]*)?", 'g');
+const dateRegex = new RegExp("[0-9][1-9]\/[0-9][1-9]\/[0-9][1-9]([0-9][0-9])?", 'g');
+
+const tokenRegexArray = [tupleRegex,stringRegex,dateRegex,numberRegex];
+
 window.onload = function() {
     editor = ace.edit("editor");
 
@@ -85,15 +92,16 @@ window.onload = function() {
     function generateAdvice(adviceOn) {
         var editorValue = editor.getSession().getValue();
         if (showAdvice(adviceOn)) {
+            var parseValue = null;
+            if (adviceOn == AdviceOn.COMMAND) {
+                var cursor = editor.getCursorPosition();
+                parseValue = editor.getSession().getTextRange(new Range(0, 0, cursor.row, cursor.column));
+            } else
+                parseValue = editorValue;
+            console.log(parseValue);
             try {
-                var parseValue = null;
-                if (adviceOn == AdviceOn.COMMAND) {
-                    var cursor = editor.getCursorPosition();
-                    parseValue = editor.getSession().getTextRange(new Range(0, 0, cursor.row, cursor.column));
-                } else
-                    parseValue = editorValue;
-                console.log(parseValue);
-                dslparser.parse(parseValue);
+
+                var result = dslparser.parse(parseValue, "start", true);
                 try {
                     dslparser.parse(editorValue + ' a');
                 } catch(e) {
@@ -161,8 +169,8 @@ window.onload = function() {
             if (result.length > 0) {
                 auto.activate(error.line - 1, error.column - 1);
                 auto.suggest('', result);
-            }else{
-                 console.log('content assist notavailable');
+            } else {
+                console.log('content assist notavailable');
             }
         }
 
@@ -170,6 +178,19 @@ window.onload = function() {
 
     function showContextRecommendations(error) {
 
+        var cursor = editor.getCursorPosition();
+        var cursorLine=editor.getLine(cursor.row);
+        for(var i in tokenRegexArray){
+            var matches=cursorLine.match(tokenRegexArray[i]);
+            if(matches){
+                var startIndex=0;
+                for(var j in matches){
+                    var start = cursorLine.indexOf(matches[j],startIndex);
+                    var end = start+matches[j].length;
+                    if(cursor.)
+                }
+            }
+        }
     }
 
     function scheduleAdviceGenerator(advice) {
