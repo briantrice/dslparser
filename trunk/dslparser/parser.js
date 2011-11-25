@@ -8,7 +8,10 @@ dslparser = (function(){
      * which the parser was generated (see |PEG.buildParser|). If the parsing is
      * unsuccessful, throws |PEG.parser.SyntaxError| describing the error.
      */
-    parse: function(input, startRule) {
+    parse: function(input, startRule,recoverError) {
+      if(recoverError)
+        errorRecoveryOpen=recoverError;
+
       var parseFunctions = {
         "dateValue": parse_dateValue,
         "discreateequalityoperators": parse_discreateequalityoperators,
@@ -260,7 +263,10 @@ dslparser = (function(){
         var result2 = result1 !== null
           ? (function() {
           console.log('lastoperator: '+lastoperator+' lastvariable '+lastvariable);
-          return 'errorRecovery';})()
+          if(errorRecoveryOpen)
+          return 'errorRecovery';
+          return null;
+          })()
           : null;
         if (result2 !== null) {
           var result0 = result2;
@@ -351,46 +357,90 @@ dslparser = (function(){
         
         
         var result0 = [];
-        var savedPos4 = pos;
-        var savedPos5 = pos;
-        var result16 = parse_dsloperator();
-        if (result16 !== null) {
-          var result17 = parse_whiteSpace();
-          if (result17 !== null) {
-            var result18 = parse_dslexpression();
-            if (result18 !== null) {
-              var result14 = [result16, result17, result18];
+        var savedPos2 = pos;
+        var savedPos3 = pos;
+        var result11 = parse_dsloperator();
+        if (result11 !== null) {
+          var result12 = parse_whiteSpace();
+          if (result12 !== null) {
+            var result13 = parse_dslexpression();
+            if (result13 !== null) {
+              var result9 = [result11, result12, result13];
             } else {
-              var result14 = null;
-              pos = savedPos5;
+              var result9 = null;
+              pos = savedPos3;
             }
           } else {
-            var result14 = null;
-            pos = savedPos5;
+            var result9 = null;
+            pos = savedPos3;
           }
         } else {
-          var result14 = null;
-          pos = savedPos5;
+          var result9 = null;
+          pos = savedPos3;
         }
-        var result15 = result14 !== null
-          ? (function(dsloperator, dslexpression) {return [dsloperator,dslexpression];})(result14[0], result14[2])
+        var result10 = result9 !== null
+          ? (function(dsloperator, dslexpression) {return [dsloperator,dslexpression];})(result9[0], result9[2])
           : null;
-        if (result15 !== null) {
-          var result13 = result15;
+        if (result10 !== null) {
+          var result8 = result10;
         } else {
-          var result13 = null;
-          pos = savedPos4;
+          var result8 = null;
+          pos = savedPos2;
         }
-        if (result13 !== null) {
-          var result1 = result13;
+        if (result8 !== null) {
+          var result1 = result8;
         } else {
+          var savedPos0 = pos;
+          var savedPos1 = pos;
+          var result5 = parse_whiteSpace();
+          if (result5 !== null) {
+            var result6 = parse_errorRecovery();
+            if (result6 !== null) {
+              var result7 = parse_whiteSpace();
+              if (result7 !== null) {
+                var result3 = [result5, result6, result7];
+              } else {
+                var result3 = null;
+                pos = savedPos1;
+              }
+            } else {
+              var result3 = null;
+              pos = savedPos1;
+            }
+          } else {
+            var result3 = null;
+            pos = savedPos1;
+          }
+          var result4 = result3 !== null
+            ? (function(errorRecovery) {return errorRecovery;})(result3[1])
+            : null;
+          if (result4 !== null) {
+            var result2 = result4;
+          } else {
+            var result2 = null;
+            pos = savedPos0;
+          }
+          if (result2 !== null) {
+            var result1 = result2;
+          } else {
+            var result1 = null;;
+          };
+        }
+        while (result1 !== null) {
+          result0.push(result1);
           var savedPos2 = pos;
           var savedPos3 = pos;
-          var result11 = parse_whiteSpace();
+          var result11 = parse_dsloperator();
           if (result11 !== null) {
-            var result12 = parse_dslexpression();
+            var result12 = parse_whiteSpace();
             if (result12 !== null) {
-              var result9 = [result11, result12];
+              var result13 = parse_dslexpression();
+              if (result13 !== null) {
+                var result9 = [result11, result12, result13];
+              } else {
+                var result9 = null;
+                pos = savedPos3;
+              }
             } else {
               var result9 = null;
               pos = savedPos3;
@@ -400,7 +450,7 @@ dslparser = (function(){
             pos = savedPos3;
           }
           var result10 = result9 !== null
-            ? (function(dslexpression) {return [dslexpression];})(result9[1])
+            ? (function(dsloperator, dslexpression) {return [dsloperator,dslexpression];})(result9[0], result9[2])
             : null;
           if (result10 !== null) {
             var result8 = result10;
@@ -446,106 +496,6 @@ dslparser = (function(){
             } else {
               var result1 = null;;
             };
-          };
-        }
-        while (result1 !== null) {
-          result0.push(result1);
-          var savedPos4 = pos;
-          var savedPos5 = pos;
-          var result16 = parse_dsloperator();
-          if (result16 !== null) {
-            var result17 = parse_whiteSpace();
-            if (result17 !== null) {
-              var result18 = parse_dslexpression();
-              if (result18 !== null) {
-                var result14 = [result16, result17, result18];
-              } else {
-                var result14 = null;
-                pos = savedPos5;
-              }
-            } else {
-              var result14 = null;
-              pos = savedPos5;
-            }
-          } else {
-            var result14 = null;
-            pos = savedPos5;
-          }
-          var result15 = result14 !== null
-            ? (function(dsloperator, dslexpression) {return [dsloperator,dslexpression];})(result14[0], result14[2])
-            : null;
-          if (result15 !== null) {
-            var result13 = result15;
-          } else {
-            var result13 = null;
-            pos = savedPos4;
-          }
-          if (result13 !== null) {
-            var result1 = result13;
-          } else {
-            var savedPos2 = pos;
-            var savedPos3 = pos;
-            var result11 = parse_whiteSpace();
-            if (result11 !== null) {
-              var result12 = parse_dslexpression();
-              if (result12 !== null) {
-                var result9 = [result11, result12];
-              } else {
-                var result9 = null;
-                pos = savedPos3;
-              }
-            } else {
-              var result9 = null;
-              pos = savedPos3;
-            }
-            var result10 = result9 !== null
-              ? (function(dslexpression) {return [dslexpression];})(result9[1])
-              : null;
-            if (result10 !== null) {
-              var result8 = result10;
-            } else {
-              var result8 = null;
-              pos = savedPos2;
-            }
-            if (result8 !== null) {
-              var result1 = result8;
-            } else {
-              var savedPos0 = pos;
-              var savedPos1 = pos;
-              var result5 = parse_whiteSpace();
-              if (result5 !== null) {
-                var result6 = parse_errorRecovery();
-                if (result6 !== null) {
-                  var result7 = parse_whiteSpace();
-                  if (result7 !== null) {
-                    var result3 = [result5, result6, result7];
-                  } else {
-                    var result3 = null;
-                    pos = savedPos1;
-                  }
-                } else {
-                  var result3 = null;
-                  pos = savedPos1;
-                }
-              } else {
-                var result3 = null;
-                pos = savedPos1;
-              }
-              var result4 = result3 !== null
-                ? (function(errorRecovery) {return errorRecovery;})(result3[1])
-                : null;
-              if (result4 !== null) {
-                var result2 = result4;
-              } else {
-                var result2 = null;
-                pos = savedPos0;
-              }
-              if (result2 !== null) {
-                var result1 = result2;
-              } else {
-                var result1 = null;;
-              };
-            };
           }
         }
         
@@ -569,50 +519,51 @@ dslparser = (function(){
         
         var savedPos0 = pos;
         if (input.substr(pos, 3) === "and") {
-          var result6 = "and";
+          var result5 = "and";
           pos += 3;
         } else {
-          var result6 = null;
+          var result5 = null;
           if (reportMatchFailures) {
             matchFailed("\"and\"");
           }
         }
-        if (result6 !== null) {
-          var result3 = result6;
+        if (result5 !== null) {
+          var result1 = result5;
         } else {
           if (input.substr(pos, 2) === "or") {
-            var result5 = "or";
+            var result4 = "or";
             pos += 2;
           } else {
-            var result5 = null;
+            var result4 = null;
             if (reportMatchFailures) {
               matchFailed("\"or\"");
             }
           }
-          if (result5 !== null) {
-            var result3 = result5;
+          if (result4 !== null) {
+            var result1 = result4;
           } else {
-            var result3 = null;;
+            var result3 = parse_whiteSpace();
+            if (result3 !== null) {
+              var result1 = result3;
+            } else {
+              var result1 = null;;
+            };
           };
         }
-        var result4 = result3 !== null
-          ? (function(operator) {return operator;})(result3)
+        var result2 = result1 !== null
+          ? (function(operator) {
+          if(errorRecoveryOpen && operator=='')
+          return 'errorRecovery';
+          else if(!errorRecoveryOpen && operator=='')
+          return null;
+          return operator;
+          })(result1)
           : null;
-        if (result4 !== null) {
-          var result2 = result4;
-        } else {
-          var result2 = null;
-          pos = savedPos0;
-        }
         if (result2 !== null) {
           var result0 = result2;
         } else {
-          var result1 = parse_errorRecovery();
-          if (result1 !== null) {
-            var result0 = result1;
-          } else {
-            var result0 = null;;
-          };
+          var result0 = null;
+          pos = savedPos0;
         }
         
         
@@ -2137,6 +2088,8 @@ dslparser = (function(){
       
   var lastvariable;
       
+  var errorRecoveryOpen=false;
+      
  
       
       var result = parseFunctions[startRule]();
@@ -2177,7 +2130,22 @@ dslparser = (function(){
         );
       }
       
-      return result;
+      return {
+          result:result,
+          lastoperator:lastoperator,
+          lastvariable:lastvariable,
+          errorRecoveryOpen:errorRecoveryOpen,
+          hasError:function(){
+              if(result){
+                for(var i in result){
+                    if(result[i] === 'errorRecovery')
+                        return true;
+                }
+              }else{
+                return false;
+              }
+          }
+      };
     },
     
     /* Returns the parser source code. */
